@@ -1,4 +1,10 @@
 import { parseDirectives, toLetterkenny } from "./letterkenny/transform.js";
+import {
+  privacyPolicyHtml,
+  supportHtml,
+  termsHtml,
+  subProcessorsHtml,
+} from "./privacy.js";
 
 type KVNamespace = {
   get(key: string): Promise<string | null>;
@@ -32,6 +38,22 @@ export default {
 
     if (url.pathname === "/healthz") {
       return jsonResponse({ ok: true }, 200);
+    }
+
+    if (url.pathname === "/privacy" && request.method === "GET") {
+      return htmlResponse(privacyPolicyHtml);
+    }
+
+    if (url.pathname === "/support" && request.method === "GET") {
+      return htmlResponse(supportHtml);
+    }
+
+    if (url.pathname === "/terms" && request.method === "GET") {
+      return htmlResponse(termsHtml);
+    }
+
+    if (url.pathname === "/sub-processors" && request.method === "GET") {
+      return htmlResponse(subProcessorsHtml);
     }
 
     if (url.pathname === "/slack/install" && request.method === "GET") {
@@ -182,6 +204,15 @@ function jsonResponse(payload: unknown, status: number): Response {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
+    },
+  });
+}
+
+function htmlResponse(html: string): Response {
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
     },
   });
 }

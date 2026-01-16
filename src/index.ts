@@ -2,6 +2,12 @@ import "dotenv/config";
 import express from "express";
 import { handleSlackCommand } from "./slack/handler.js";
 import { handleSlackInteractive } from "./slack/interactive.js";
+import {
+  privacyPolicyHtml,
+  supportHtml,
+  termsHtml,
+  subProcessorsHtml,
+} from "./privacy.js";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -56,6 +62,26 @@ app.post(
 
 app.get("/healthz", (_req, res) => {
   res.json({ ok: true });
+});
+
+app.get("/privacy", (_req, res) => {
+  res.setHeader("content-type", "text/html; charset=utf-8");
+  res.send(privacyPolicyHtml);
+});
+
+app.get("/support", (_req, res) => {
+  res.setHeader("content-type", "text/html; charset=utf-8");
+  res.send(supportHtml);
+});
+
+app.get("/terms", (_req, res) => {
+  res.setHeader("content-type", "text/html; charset=utf-8");
+  res.send(termsHtml);
+});
+
+app.get("/sub-processors", (_req, res) => {
+  res.setHeader("content-type", "text/html; charset=utf-8");
+  res.send(subProcessorsHtml);
 });
 
 app.listen(port, () => {
