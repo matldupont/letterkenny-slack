@@ -61,9 +61,11 @@ pnpm send-test
 
 Spice toggle:
 
-- Default: thick slang
+- Default: maximum slang
 - Add `--extra` or `--spicy` at the start of your text for extra slang
-- Add `--max` for maximum slang
+- Add `--thick` for the milder base
+- Add `--post` to have the app post to the channel
+- Default behavior: show the translation with a "Post to channel" button
 
 Expose locally (for example):
 
@@ -75,7 +77,8 @@ pnpm dlx ngrok http 3000
 
 - Command: `/letterkenny`
 - Request URL: `https://<host>/slack/command`
-- Scopes: `commands` (and `chat:write` only if you want the bot to post messages)
+- Scopes: `commands` and `chat:write` (required if you use `--post`)
+- Interactivity Request URL: `https://<host>/slack/interactive`
 - OAuth redirect URL: `https://<host>/slack/oauth`
 - Install URL: `https://<host>/slack/install`
 

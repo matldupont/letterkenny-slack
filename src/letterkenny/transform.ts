@@ -188,24 +188,42 @@ function addPunctuationIfMissing(sentence: string, punctuation: string): string 
   return `${sentence}${punctuation}`;
 }
 
-export function parseSpiceDirective(
+export function parseDirectives(
   input: string,
-): { text: string; spice: SpiceLevel } {
+): { text: string; spice: SpiceLevel; post: boolean } {
   const trimmed = input.trim();
-  const match = trimmed.match(/^(--|!)(extra|spicy|thick|max)\s+/i);
-  if (!match) {
-    return { text: trimmed, spice: "thick" };
+  if (!trimmed) {
+    return { text: "", spice: "max", post: false };
   }
 
-  const token = match[2]?.toLowerCase();
-  const spice =
-    token === "max"
-      ? "max"
-      : token === "extra" || token === "spicy"
-        ? "extra"
-        : "thick";
-  const rest = trimmed.slice(match[0].length);
-  return { text: rest.trim(), spice };
+  const tokens = trimmed.split(/\s+/);
+  let spice: SpiceLevel = "max";
+  let post = false;
+
+  while (tokens.length > 0) {
+    const token = tokens[0];
+    const match = token.match(/^(--|!)([a-z-]+)$/i);
+    if (!match) {
+      break;
+    }
+
+    const value = match[2]?.toLowerCase();
+    if (value === "max") {
+      spice = "max";
+    } else if (value === "extra" || value === "spicy") {
+      spice = "extra";
+    } else if (value === "thick") {
+      spice = "thick";
+    } else if (value === "post") {
+      post = true;
+    } else {
+      break;
+    }
+
+    tokens.shift();
+  }
+
+  return { text: tokens.join(" ").trim(), spice, post };
 }
 
 function capitalizeSentence(sentence: string): string {
