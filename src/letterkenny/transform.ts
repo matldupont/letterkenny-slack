@@ -1,4 +1,4 @@
-import { letterkennyConfig } from "./config.js";
+import { getLetterkennyConfig, type SpiceLevel } from "./config.js";
 
 export type Intent =
   | "greeting"
@@ -8,26 +8,30 @@ export type Intent =
   | "question"
   | "statement";
 
-export function toLetterkenny(input: string): string {
+export function toLetterkenny(
+  input: string,
+  options: { spice?: SpiceLevel } = {},
+): string {
   const trimmed = input.trim();
   if (!trimmed) {
     return "Say somethin' there, bud.";
   }
 
+  const config = getLetterkennyConfig(options.spice);
   const intent = detectIntent(trimmed);
   const sentences = splitSentences(trimmed);
 
   const transformed = sentences.flatMap((sentence, index) => {
     const isFirst = index === 0;
     if (intent === "greeting" && isFirst) {
-      return transformGreetingSentence(sentence);
+      return transformGreetingSentence(sentence, config);
     }
-    return [transformSentence(sentence)];
+    return [transformSentence(sentence, config)];
   });
 
   const rejoined = transformed.join(" ");
   const finalSentences = splitSentences(rejoined);
-  const withParticle = injectDiscourseParticle(finalSentences, intent);
+  const withParticle = injectDiscourseParticle(finalSentences, intent, config);
 
   return withParticle.join(" ").replace(/\s+/g, " ").trim();
 }
@@ -61,19 +65,22 @@ function splitSentences(text: string): string[] {
   return matches.map((sentence) => sentence.trim()).filter(Boolean);
 }
 
-function transformGreetingSentence(sentence: string): string[] {
+function transformGreetingSentence(
+  sentence: string,
+  config: ReturnType<typeof getLetterkennyConfig>,
+): string[] {
   const parts = sentence.split(",");
   const greetingTarget = parts[0] ?? "";
   const rest = parts.slice(1).join(",").trim();
 
   const match = greetingTarget.match(/^(hi|hello|hey)\b\s*(.*)$/i);
   if (!match) {
-    return [transformSentence(sentence)];
+    return [transformSentence(sentence, config)];
   }
 
-  const openerBase = letterkennyConfig.greetingOpeners[0];
+  const openerBase = config.greetingOpeners[0];
   if (!openerBase) {
-    return [transformSentence(sentence)];
+    return [transformSentence(sentence, config)];
   }
   const addressee = (match[2] ?? "").trim();
   const opener = addressee ? `${openerBase}, ${addressee}` : openerBase;
@@ -83,15 +90,18 @@ function transformGreetingSentence(sentence: string): string[] {
     return [openerSentence];
   }
 
-  const remainder = capitalizeSentence(transformSentence(rest));
+  const remainder = capitalizeSentence(transformSentence(rest, config));
   return [openerSentence, remainder];
 }
 
-function transformSentence(sentence: string): string {
+function transformSentence(
+  sentence: string,
+  config: ReturnType<typeof getLetterkennyConfig>,
+): string {
   let transformed = sentence.trim();
-  transformed = applyRules(transformed, letterkennyConfig.contractionRules);
-  transformed = applyRules(transformed, letterkennyConfig.intensifierRules);
-  transformed = applyRules(transformed, letterkennyConfig.phrasingRules);
+  transformed = applyRules(transformed, config.contractionRules);
+  transformed = applyRules(transformed, config.intensifierRules);
+  transformed = applyRules(transformed, config.phrasingRules);
 
   transformed = transformed.replace(
     /^(I am|I'm)\s+real\s+/i,
@@ -123,7 +133,11 @@ function caseMatchReplacement(match: string, replacement: string): string {
   return replacement;
 }
 
-function injectDiscourseParticle(sentences: string[], intent: Intent): string[] {
+function injectDiscourseParticle(
+  sentences: string[],
+  intent: Intent,
+  config: ReturnType<typeof getLetterkennyConfig>,
+): string[] {
   if (sentences.length === 0) {
     return sentences;
   }
@@ -131,16 +145,16 @@ function injectDiscourseParticle(sentences: string[], intent: Intent): string[] 
   const lastIndex = sentences.length - 1;
   const lastSentence = sentences[lastIndex];
 
-  if (containsParticle(lastSentence)) {
+  if (containsParticle(lastSentence, config)) {
     return sentences;
   }
 
   const lastIsQuestion = /\?\s*$/.test(lastSentence);
   const particle =
     (intent === "question" && lastIsQuestion
-      ? letterkennyConfig.intentParticleMap.question
-      : letterkennyConfig.intentParticleMap[intent]) ??
-    letterkennyConfig.discourseParticles[0];
+      ? config.intentParticleMap.question
+      : config.intentParticleMap[intent]) ??
+    config.discourseParticles[0];
 
   sentences[lastIndex] = appendParticle(lastSentence, particle);
   return sentences;
@@ -152,8 +166,11 @@ function appendParticle(sentence: string, particle: string): string {
   return `${base}, ${particle}`;
 }
 
-function containsParticle(sentence: string): boolean {
-  return letterkennyConfig.discourseParticles.some((particle) => {
+function containsParticle(
+  sentence: string,
+  config: ReturnType<typeof getLetterkennyConfig>,
+): boolean {
+  return config.discourseParticles.some((particle) => {
     const needle = particle.replace(/[.!?]/g, "");
     return new RegExp(`\\b${escapeRegExp(needle)}\\b`, "i").test(sentence);
   });
@@ -168,6 +185,21 @@ function addPunctuationIfMissing(sentence: string, punctuation: string): string 
     return sentence;
   }
   return `${sentence}${punctuation}`;
+}
+
+export function parseSpiceDirective(
+  input: string,
+): { text: string; spice: SpiceLevel } {
+  const trimmed = input.trim();
+  const match = trimmed.match(/^(--|!)(extra|spicy|thick)\s+/i);
+  if (!match) {
+    return { text: trimmed, spice: "thick" };
+  }
+
+  const token = match[2]?.toLowerCase();
+  const spice = token === "extra" || token === "spicy" ? "extra" : "thick";
+  const rest = trimmed.slice(match[0].length);
+  return { text: rest.trim(), spice };
 }
 
 function capitalizeSentence(sentence: string): string {

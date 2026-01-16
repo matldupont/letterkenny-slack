@@ -1,7 +1,21 @@
-import { toLetterkenny } from "./letterkenny/transform.js";
+import { parseSpiceDirective, toLetterkenny } from "./letterkenny/transform.js";
+
+type KVNamespace = {
+  get(key: string): Promise<string | null>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<void>;
+  delete(key: string): Promise<void>;
+};
 
 type Env = {
   SLACK_SIGNING_SECRET?: string;
+  SLACK_CLIENT_ID?: string;
+  SLACK_CLIENT_SECRET?: string;
+  SLACK_REDIRECT_URI?: string;
+  SLACK_TOKENS: KVNamespace;
 };
 
 type VerifyInput = {
@@ -18,6 +32,14 @@ export default {
 
     if (url.pathname === "/healthz") {
       return jsonResponse({ ok: true }, 200);
+    }
+
+    if (url.pathname === "/slack/install" && request.method === "GET") {
+      return handleInstall(env);
+    }
+
+    if (url.pathname === "/slack/oauth" && request.method === "GET") {
+      return handleOauth(request, env);
     }
 
     if (url.pathname !== "/slack/command" || request.method !== "POST") {
@@ -41,7 +63,8 @@ export default {
       return new Response("Unsupported command", { status: 400 });
     }
 
-    const translated = toLetterkenny(payload.text ?? "");
+    const { text, spice } = parseSpiceDirective(payload.text ?? "");
+    const translated = toLetterkenny(text, { spice });
     return jsonResponse(
       {
         response_type: "ephemeral",
@@ -128,4 +151,121 @@ function jsonResponse(payload: unknown, status: number): Response {
       "content-type": "application/json; charset=utf-8",
     },
   });
+}
+
+function textResponse(text: string, status: number): Response {
+  return new Response(text, {
+    status,
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+    },
+  });
+}
+
+async function handleInstall(env: Env): Promise<Response> {
+  if (!env.SLACK_CLIENT_ID || !env.SLACK_REDIRECT_URI) {
+    return textResponse("Slack OAuth not configured.", 500);
+  }
+
+  const state = generateState();
+  await env.SLACK_TOKENS.put(`state:${state}`, "1", { expirationTtl: 60 * 10 });
+
+  const params = new URLSearchParams({
+    client_id: env.SLACK_CLIENT_ID,
+    scope: "commands",
+    redirect_uri: env.SLACK_REDIRECT_URI,
+    state,
+  });
+
+  return Response.redirect(
+    `https://slack.com/oauth/v2/authorize?${params.toString()}`,
+    302,
+  );
+}
+
+async function handleOauth(request: Request, env: Env): Promise<Response> {
+  if (!env.SLACK_CLIENT_ID || !env.SLACK_CLIENT_SECRET || !env.SLACK_REDIRECT_URI) {
+    return textResponse("Slack OAuth not configured.", 500);
+  }
+
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const error = url.searchParams.get("error");
+
+  if (error) {
+    return textResponse(`Slack OAuth error: ${error}`, 400);
+  }
+
+  if (!code || !state) {
+    return textResponse("Missing OAuth code or state.", 400);
+  }
+
+  const stateKey = `state:${state}`;
+  const stateRecord = await env.SLACK_TOKENS.get(stateKey);
+  if (!stateRecord) {
+    return textResponse("Invalid OAuth state.", 400);
+  }
+  await env.SLACK_TOKENS.delete(stateKey);
+
+  const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      client_id: env.SLACK_CLIENT_ID,
+      client_secret: env.SLACK_CLIENT_SECRET,
+      redirect_uri: env.SLACK_REDIRECT_URI,
+      code,
+    }),
+  });
+
+  const data = (await tokenResponse.json()) as SlackOauthResponse;
+  if (!data.ok) {
+    return textResponse(`Slack OAuth failed: ${data.error ?? "unknown"}`, 400);
+  }
+
+  if (data.team?.id && data.access_token) {
+    await env.SLACK_TOKENS.put(
+      `team:${data.team.id}`,
+      JSON.stringify({
+        team: data.team,
+        access_token: data.access_token,
+        bot_user_id: data.bot_user_id,
+        authed_user: data.authed_user,
+        scope: data.scope,
+        installed_at: new Date().toISOString(),
+      }),
+    );
+  }
+
+  return textResponse("Letterkenny app installed. You can close this tab.", 200);
+}
+
+type SlackOauthResponse = {
+  ok: boolean;
+  error?: string;
+  access_token?: string;
+  scope?: string;
+  bot_user_id?: string;
+  team?: {
+    id: string;
+    name?: string;
+  };
+  authed_user?: {
+    id?: string;
+    scope?: string;
+    access_token?: string;
+  };
+};
+
+function generateState(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let value = "";
+  for (const byte of bytes) {
+    value += byte.toString(16).padStart(2, "0");
+  }
+  return value;
 }

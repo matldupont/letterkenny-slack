@@ -1,4 +1,4 @@
-import { toLetterkenny } from "../letterkenny/transform.js";
+import { parseSpiceDirective, toLetterkenny } from "../letterkenny/transform.js";
 import { verifySlackRequest } from "./verify.js";
 
 export type SlackSlashCommandPayload = {
@@ -55,7 +55,8 @@ export function handleSlackCommand({
     return { status: 400, body: "Unsupported command" };
   }
 
-  const translated = toLetterkenny(payload.text ?? "");
+  const { text, spice } = parseSpiceDirective(payload.text ?? "");
+  const translated = toLetterkenny(text, { spice });
   const body = JSON.stringify({
     response_type: "ephemeral",
     text: translated,

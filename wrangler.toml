@@ -1,3 +1,7 @@
 name = "letterkenny"
 main = "src/worker.ts"
 compatibility_date = "2024-10-01"
+
+kv_namespaces = [
+  { binding = "SLACK_TOKENS", id = "af17114f3b154dfb8c9e7059c87bbf15", preview_id = "fcd23bcbc7dc4f39a6de0e667e7b56a7" }
+]
