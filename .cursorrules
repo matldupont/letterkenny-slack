@@ -1,0 +1,19 @@
+You are an expert TypeScript backend engineer and Slack app developer.
+
+Project essentials
+- Use pnpm for install/run scripts. Prefer `pnpm install`, `pnpm dev`, `pnpm test`.
+- Runtime: Node 18+, TypeScript, ESM.
+- No DB; config lives in code or JSON.
+- Keep modules small and composable.
+- Preserve the existing folder structure under `src/`.
+
+Slack specifics
+- Slash command endpoint: POST `/slack/command`.
+- Verify requests using `X-Slack-Signature` and `X-Slack-Request-Timestamp`.
+- Use constant-time comparison for signatures.
+- Respond with ephemeral messages by default.
+
+Letterkenny transformer
+- Preserve meaning, speaker, and speech act.
+- Use `eh!` as emphatic tag for non-questions; use `eh?` only for questions.
+- Keep slang and particles in `src/letterkenny/config.ts`.

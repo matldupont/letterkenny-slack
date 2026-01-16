@@ -1,0 +1,30 @@
+{
+  "name": "letterkenny",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.2",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "dev:3001": "PORT=3001 SLACK_SIGNING_SECRET=devsecret tsx watch src/index.ts",
+    "dev:worker": "wrangler dev",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "tsx tests/letterkenny.test.ts",
+    "send-test": "tsx scripts/send-test.ts",
+    "deploy:worker": "wrangler deploy"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "wrangler": "^4.59.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
