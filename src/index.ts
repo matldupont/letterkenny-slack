@@ -41,6 +41,7 @@ app.post(
       rawBody,
       headers: req.headers,
       signingSecret: process.env.SLACK_SIGNING_SECRET ?? "",
+      botToken: process.env.SLACK_BOT_TOKEN ?? "",
     });
 
     res.status(result.status);

@@ -98,13 +98,7 @@ export default {
       );
     }
 
-    return jsonResponse(
-      {
-        response_type: "ephemeral",
-        text: translated,
-      },
-      200,
-    );
+    return jsonResponse(buildPromptResponse(translated), 200);
   },
 };
 
@@ -190,6 +184,43 @@ function jsonResponse(payload: unknown, status: number): Response {
       "content-type": "application/json; charset=utf-8",
     },
   });
+}
+
+function buildPromptResponse(text: string): {
+  response_type: "ephemeral";
+  text: string;
+  blocks: Array<Record<string, unknown>>;
+} {
+  const buttonValue = trimToMax(text, 2000);
+  const displayText = trimToMax(text, 3000);
+
+  return {
+    response_type: "ephemeral",
+    text: displayText,
+    blocks: [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*Letterkenny:*\n${displayText}`,
+        },
+      },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "Post to channel",
+            },
+            action_id: "post_translation",
+            value: buttonValue,
+          },
+        ],
+      },
+    ],
+  };
 }
 
 function textResponse(text: string, status: number): Response {
@@ -309,6 +340,13 @@ function generateState(): string {
   return value;
 }
 
+function trimToMax(text: string, max: number): string {
+  if (text.length <= max) {
+    return text;
+  }
+  return `${text.slice(0, max - 1)}…`;
+}
+
 async function postToSlack(input: {
   env: Env;
   teamId?: string;
@@ -337,10 +375,22 @@ async function postToSlack(input: {
 
     const data = (await response.json()) as { ok: boolean; error?: string };
     if (!data.ok) {
-      return { ok: false, error: data.error ?? "chat.postMessage failed" };
+      console.log("chat_post_failed", {
+        error: data.error,
+        hasToken: true,
+        hasChannel: Boolean(input.channelId),
+      });
+      // Fall back to response_url if available.
+    } else {
+      return { ok: true };
     }
+  }
 
-    return { ok: true };
+  if (!accessToken) {
+    console.log("chat_post_skipped_missing_token", {
+      teamId: input.teamId,
+      hasChannel: Boolean(input.channelId),
+    });
   }
 
   if (input.responseUrl) {
@@ -356,6 +406,9 @@ async function postToSlack(input: {
     });
 
     if (!response.ok) {
+      console.log("response_url_failed", {
+        status: response.status,
+      });
       return { ok: false, error: `response_url failed (${response.status})` };
     }
 
@@ -368,6 +421,8 @@ async function postToSlack(input: {
 type SlackInteractivePayload = {
   type?: string;
   response_url?: string;
+  team?: { id?: string };
+  channel?: { id?: string };
   actions?: Array<{ value?: string }>;
 };
 
@@ -408,11 +463,19 @@ async function handleInteractive(request: Request, env: Env): Promise<Response> 
 
   const posted = await postToSlack({
     env,
+    teamId: payload.team?.id,
+    channelId: payload.channel?.id,
     responseUrl: payload.response_url,
     text,
   });
 
   if (!posted.ok) {
+    console.log("interactive_post_failed", {
+      error: posted.error,
+      teamId: payload.team?.id,
+      channelId: payload.channel?.id,
+      hasResponseUrl: Boolean(payload.response_url),
+    });
     return jsonResponse(
       {
         response_type: "ephemeral",

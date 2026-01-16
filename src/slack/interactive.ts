@@ -4,6 +4,7 @@ type HandlerInput = {
   rawBody: string;
   headers: Record<string, string | string[] | undefined>;
   signingSecret: string;
+  botToken?: string;
 };
 
 type HandlerResult = {
@@ -15,6 +16,8 @@ type HandlerResult = {
 type SlackInteractivePayload = {
   type?: string;
   response_url?: string;
+  team?: { id?: string };
+  channel?: { id?: string };
   actions?: Array<{ value?: string }>;
 };
 
@@ -22,6 +25,7 @@ export async function handleSlackInteractive({
   rawBody,
   headers,
   signingSecret,
+  botToken,
 }: HandlerInput): Promise<HandlerResult> {
   if (!rawBody) {
     return { status: 400, body: "Missing body" };
@@ -52,6 +56,8 @@ export async function handleSlackInteractive({
   }
 
   const posted = await postMessage({
+    botToken,
+    channelId: payload.channel?.id,
     responseUrl: payload.response_url,
     text,
   });
@@ -100,9 +106,32 @@ function jsonResponse(payload: unknown, status: number): HandlerResult {
 }
 
 async function postMessage(input: {
+  botToken?: string;
+  channelId?: string;
   responseUrl?: string;
   text: string;
 }): Promise<{ ok: boolean; error?: string }> {
+  if (input.botToken && input.channelId) {
+    const response = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${input.botToken}`,
+        "content-type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify({
+        channel: input.channelId,
+        text: input.text,
+      }),
+    });
+
+    const data = (await response.json()) as { ok: boolean; error?: string };
+    if (!data.ok) {
+      // Fall back to response_url if available.
+    } else {
+      return { ok: true };
+    }
+  }
+
   if (input.responseUrl) {
     const response = await fetch(input.responseUrl, {
       method: "POST",
@@ -122,7 +151,7 @@ async function postMessage(input: {
     return { ok: true };
   }
 
-  return { ok: false, error: "No response_url available" };
+  return { ok: false, error: "No bot token or response_url available" };
 }
 
 function headerValue(
