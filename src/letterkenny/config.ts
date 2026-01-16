@@ -5,7 +5,7 @@ export type ReplacementRule = {
 
 export type LetterkennyConfig = {
   discourseParticles: string[];
-  intentParticleMap: Record<string, string>;
+  intentParticleMap: Record<string, string | string[]>;
   greetingOpeners: string[];
   intensifierRules: ReplacementRule[];
   phrasingRules: ReplacementRule[];
@@ -208,7 +208,7 @@ const maxConfig: Pick<
   ],
 };
 
-const spiceIntentParticleMap: Record<SpiceLevel, Record<string, string>> = {
+const spiceIntentParticleMap: Record<SpiceLevel, Record<string, string | string[]>> = {
   thick: thickConfig.intentParticleMap,
   extra: {
     greeting: "how'r ya now.",
@@ -216,7 +216,7 @@ const spiceIntentParticleMap: Record<SpiceLevel, Record<string, string>> = {
     complaint: "there, bud.",
     praise: "that's the ticket.",
     question: "eh?",
-    statement: "ya know.",
+    statement: ["ya know.", "there it is.", "you bet.", "oh, for sure."],
   },
   max: {
     greeting: "how'r ya now.",
@@ -224,7 +224,7 @@ const spiceIntentParticleMap: Record<SpiceLevel, Record<string, string>> = {
     complaint: "right on.",
     praise: "give'r.",
     question: "eh?",
-    statement: "pitter patter.",
+    statement: ["pitter patter.", "there it is.", "give'r.", "get after it.", "you bet."],
   },
 };
 

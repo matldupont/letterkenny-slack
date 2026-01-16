@@ -151,11 +151,12 @@ function injectDiscourseParticle(
   }
 
   const lastIsQuestion = /\?\s*$/.test(lastSentence);
-  const particle =
-    (intent === "question" && lastIsQuestion
-      ? config.intentParticleMap.question
-      : config.intentParticleMap[intent]) ??
-    config.discourseParticles[0];
+  const particle = resolveParticle({
+    intent,
+    lastIsQuestion,
+    lastSentence,
+    config,
+  });
 
   sentences[lastIndex] = appendParticle(lastSentence, particle);
   return sentences;
@@ -175,6 +176,39 @@ function containsParticle(
     const needle = particle.replace(/[.!?]/g, "");
     return new RegExp(`\\b${escapeRegExp(needle)}\\b`, "i").test(sentence);
   });
+}
+
+function resolveParticle(input: {
+  intent: Intent;
+  lastIsQuestion: boolean;
+  lastSentence: string;
+  config: ReturnType<typeof getLetterkennyConfig>;
+}): string {
+  const { intent, lastIsQuestion, lastSentence, config } = input;
+  const intentValue =
+    intent === "question" && lastIsQuestion
+      ? config.intentParticleMap.question
+      : config.intentParticleMap[intent];
+
+  const options = Array.isArray(intentValue)
+    ? intentValue
+    : intentValue
+      ? [intentValue]
+      : [];
+
+  if (options.length > 0) {
+    return selectByHash(options, lastSentence);
+  }
+
+  return config.discourseParticles[0] ?? "eh!";
+}
+
+function selectByHash(options: string[], seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return options[hash % options.length] ?? options[0];
 }
 
 function escapeRegExp(value: string): string {
