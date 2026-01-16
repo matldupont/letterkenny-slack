@@ -182,6 +182,26 @@ const maxConfig: Pick<
   ],
 };
 
+const spiceIntentParticleMap: Record<SpiceLevel, Record<string, string>> = {
+  thick: thickConfig.intentParticleMap,
+  extra: {
+    greeting: "how'r ya now.",
+    thanks: "oh, for sure.",
+    complaint: "there, bud.",
+    praise: "that's the ticket.",
+    question: "eh?",
+    statement: "ya know.",
+  },
+  max: {
+    greeting: "how'r ya now.",
+    thanks: "oh, for sure.",
+    complaint: "right on.",
+    praise: "give'r.",
+    question: "eh?",
+    statement: "pitter patter.",
+  },
+};
+
 export function getLetterkennyConfig(spice: SpiceLevel = "thick"): LetterkennyConfig {
   if (spice === "thick") {
     return thickConfig;
@@ -189,7 +209,7 @@ export function getLetterkennyConfig(spice: SpiceLevel = "thick"): LetterkennyCo
 
   const layers = spice === "max" ? [extraConfig, maxConfig] : [extraConfig];
 
-  return layers.reduce<LetterkennyConfig>(
+  const merged = layers.reduce<LetterkennyConfig>(
     (config, layer) => ({
       ...config,
       discourseParticles: [...config.discourseParticles, ...layer.discourseParticles],
@@ -199,4 +219,9 @@ export function getLetterkennyConfig(spice: SpiceLevel = "thick"): LetterkennyCo
     }),
     { ...thickConfig },
   );
+
+  return {
+    ...merged,
+    intentParticleMap: spiceIntentParticleMap[spice] ?? thickConfig.intentParticleMap,
+  };
 }
