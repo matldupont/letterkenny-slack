@@ -62,7 +62,8 @@ pnpm send-test
 Spice toggle:
 
 - Default: thick slang
-- Add `--extra` or `--spicy` at the start of your text for max slang
+- Add `--extra` or `--spicy` at the start of your text for extra slang
+- Add `--max` for maximum slang
 
 Expose locally (for example):
 

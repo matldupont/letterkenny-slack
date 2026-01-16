@@ -13,7 +13,7 @@ export type LetterkennyConfig = {
   greetingRules: ReplacementRule[];
 };
 
-export type SpiceLevel = "thick" | "extra";
+export type SpiceLevel = "thick" | "extra" | "max";
 
 const thickConfig: LetterkennyConfig = {
   discourseParticles: [
@@ -115,11 +115,23 @@ const extraConfig: Pick<
   LetterkennyConfig,
   "discourseParticles" | "intensifierRules" | "phrasingRules" | "contractionRules"
 > = {
-  discourseParticles: ["ferda.", "how'r ya now.", "let's go.", "all right then."],
+  discourseParticles: [
+    "ferda.",
+    "how'r ya now.",
+    "let's go.",
+    "all right then.",
+    "that's the ticket.",
+    "give'r.",
+    "there it is.",
+    "oh, for sure.",
+    "and that's that.",
+  ],
   intensifierRules: [
     { pattern: /\bawesome\b/gi, replacement: "deadly" },
     { pattern: /\bperfect\b/gi, replacement: "mint" },
     { pattern: /\bterrible\b/gi, replacement: "brutal" },
+    { pattern: /\bfunny\b/gi, replacement: "a hoot" },
+    { pattern: /\bweird\b/gi, replacement: "a bit odd" },
   ],
   phrasingRules: [
     { pattern: /\bplease\b/gi, replacement: "pretty please" },
@@ -127,6 +139,10 @@ const extraConfig: Pick<
     { pattern: /\bgoing\b/gi, replacement: "goin'" },
     { pattern: /\bdoing\b/gi, replacement: "doin'" },
     { pattern: /\bgetting\b/gi, replacement: "gettin'" },
+    { pattern: /\blet's\b/gi, replacement: "let's get after it" },
+    { pattern: /\bokay\b/gi, replacement: "yeah okay" },
+    { pattern: /\bok\b/gi, replacement: "yeah okay" },
+    { pattern: /\bno problem\b/gi, replacement: "no worries" },
   ],
   contractionRules: [
     { pattern: /\byou are\b/gi, replacement: "you're" },
@@ -135,25 +151,52 @@ const extraConfig: Pick<
   ],
 };
 
+const maxConfig: Pick<
+  LetterkennyConfig,
+  "discourseParticles" | "intensifierRules" | "phrasingRules" | "contractionRules"
+> = {
+  discourseParticles: [
+    "ferda.",
+    "pitter patter.",
+    "give'r.",
+    "nooo doubt.",
+    "right on.",
+  ],
+  intensifierRules: [
+    { pattern: /\bvery\b/gi, replacement: "real friggin" },
+    { pattern: /\breally\b/gi, replacement: "real friggin" },
+    { pattern: /\bextremely\b/gi, replacement: "right proper" },
+  ],
+  phrasingRules: [
+    { pattern: /\bdo you want to\b/gi, replacement: "ya wanna" },
+    { pattern: /\bwant to\b/gi, replacement: "wanna" },
+    { pattern: /\bgoing to\b/gi, replacement: "gonna" },
+    { pattern: /\bgot to\b/gi, replacement: "gotta" },
+    { pattern: /\bkind of\b/gi, replacement: "kinda" },
+    { pattern: /\bsort of\b/gi, replacement: "sorta" },
+  ],
+  contractionRules: [
+    { pattern: /\bI have\b/gi, replacement: "I've" },
+    { pattern: /\bI will\b/gi, replacement: "I'll" },
+    { pattern: /\bwe will\b/gi, replacement: "we'll" },
+  ],
+};
+
 export function getLetterkennyConfig(spice: SpiceLevel = "thick"): LetterkennyConfig {
-  if (spice !== "extra") {
+  if (spice === "thick") {
     return thickConfig;
   }
 
-  return {
-    ...thickConfig,
-    discourseParticles: [
-      ...thickConfig.discourseParticles,
-      ...extraConfig.discourseParticles,
-    ],
-    intensifierRules: [
-      ...thickConfig.intensifierRules,
-      ...extraConfig.intensifierRules,
-    ],
-    phrasingRules: [...thickConfig.phrasingRules, ...extraConfig.phrasingRules],
-    contractionRules: [
-      ...thickConfig.contractionRules,
-      ...extraConfig.contractionRules,
-    ],
-  };
+  const layers = spice === "max" ? [extraConfig, maxConfig] : [extraConfig];
+
+  return layers.reduce<LetterkennyConfig>(
+    (config, layer) => ({
+      ...config,
+      discourseParticles: [...config.discourseParticles, ...layer.discourseParticles],
+      intensifierRules: [...config.intensifierRules, ...layer.intensifierRules],
+      phrasingRules: [...config.phrasingRules, ...layer.phrasingRules],
+      contractionRules: [...config.contractionRules, ...layer.contractionRules],
+    }),
+    { ...thickConfig },
+  );
 }

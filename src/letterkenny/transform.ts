@@ -191,13 +191,18 @@ export function parseSpiceDirective(
   input: string,
 ): { text: string; spice: SpiceLevel } {
   const trimmed = input.trim();
-  const match = trimmed.match(/^(--|!)(extra|spicy|thick)\s+/i);
+  const match = trimmed.match(/^(--|!)(extra|spicy|thick|max)\s+/i);
   if (!match) {
     return { text: trimmed, spice: "thick" };
   }
 
   const token = match[2]?.toLowerCase();
-  const spice = token === "extra" || token === "spicy" ? "extra" : "thick";
+  const spice =
+    token === "max"
+      ? "max"
+      : token === "extra" || token === "spicy"
+        ? "extra"
+        : "thick";
   const rest = trimmed.slice(match[0].length);
   return { text: rest.trim(), spice };
 }
