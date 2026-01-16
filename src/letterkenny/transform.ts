@@ -99,6 +99,7 @@ function transformSentence(
   config: ReturnType<typeof getLetterkennyConfig>,
 ): string {
   let transformed = sentence.trim();
+  transformed = applyRules(transformed, config.templateRules);
   transformed = applyRules(transformed, config.contractionRules);
   transformed = applyRules(transformed, config.intensifierRules);
   transformed = applyRules(transformed, config.phrasingRules);

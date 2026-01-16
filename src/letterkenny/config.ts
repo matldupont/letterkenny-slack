@@ -11,6 +11,7 @@ export type LetterkennyConfig = {
   phrasingRules: ReplacementRule[];
   contractionRules: ReplacementRule[];
   greetingRules: ReplacementRule[];
+  templateRules: ReplacementRule[];
 };
 
 export type SpiceLevel = "thick" | "extra" | "max";
@@ -109,11 +110,12 @@ const thickConfig: LetterkennyConfig = {
     { pattern: /\bhello\b/gi, replacement: "How're ya now" },
     { pattern: /\bhey\b/gi, replacement: "How're ya now" },
   ],
+  templateRules: [],
 };
 
 const extraConfig: Pick<
   LetterkennyConfig,
-  "discourseParticles" | "intensifierRules" | "phrasingRules" | "contractionRules"
+  "discourseParticles" | "intensifierRules" | "phrasingRules" | "contractionRules" | "templateRules"
 > = {
   discourseParticles: [
     "ferda.",
@@ -149,11 +151,12 @@ const extraConfig: Pick<
     { pattern: /\bwe have\b/gi, replacement: "we've" },
     { pattern: /\bthey have\b/gi, replacement: "they've" },
   ],
+  templateRules: [],
 };
 
 const maxConfig: Pick<
   LetterkennyConfig,
-  "discourseParticles" | "intensifierRules" | "phrasingRules" | "contractionRules"
+  "discourseParticles" | "intensifierRules" | "phrasingRules" | "contractionRules" | "templateRules"
 > = {
   discourseParticles: [
     "ferda.",
@@ -179,6 +182,29 @@ const maxConfig: Pick<
     { pattern: /\bI have\b/gi, replacement: "I've" },
     { pattern: /\bI will\b/gi, replacement: "I'll" },
     { pattern: /\bwe will\b/gi, replacement: "we'll" },
+  ],
+  templateRules: [
+    { pattern: /\bI am tired\b/gi, replacement: "I'm right beat" },
+    { pattern: /\bI'm tired\b/gi, replacement: "I'm right beat" },
+    { pattern: /\bI am (.+) today\b/gi, replacement: "I'm right $1 today" },
+    { pattern: /\bI can't focus on (.+)\b/gi, replacement: "Can't focus on $1 to save my life" },
+    { pattern: /\bI can't focus\b/gi, replacement: "Can't focus to save my life" },
+    { pattern: /\bI don't want to (.+)\b/gi, replacement: "Don't wanna $1, not even a bit" },
+    { pattern: /\bThis is (annoying|frustrating)\b/gi, replacement: "This is a whole pile of $1" },
+    { pattern: /\bThis is (good|great)\b/gi, replacement: "This is real good" },
+    { pattern: /\bCan you (.+)\b/gi, replacement: "Any chance you can $1" },
+    { pattern: /\bCould you (.+)\b/gi, replacement: "Any chance you could $1" },
+    { pattern: /\bPlease (.+)\b/gi, replacement: "Any chance you can $1" },
+    { pattern: /\bWe need to (.+)\b/gi, replacement: "We gotta $1" },
+    { pattern: /\bLet's (.+)\b/gi, replacement: "Let's get after it and $1" },
+    { pattern: /\bGood job\b/gi, replacement: "That’s real good work" },
+    { pattern: /\bI need (.+)\b/gi, replacement: "I gotta get $1" },
+    { pattern: /\bWe need (.+)\b/gi, replacement: "We gotta get $1" },
+    { pattern: /\bI am (.+)\b/gi, replacement: "I'm right $1" },
+    { pattern: /\bThis is (.+)\b/gi, replacement: "This is right $1" },
+    { pattern: /\bI am not (.+)\b/gi, replacement: "I ain't $1, not today" },
+    { pattern: /\bThis is bad\b/gi, replacement: "This is real bad" },
+    { pattern: /\bWe should (.+)\b/gi, replacement: "We oughta $1" },
   ],
 };
 
@@ -216,6 +242,7 @@ export function getLetterkennyConfig(spice: SpiceLevel = "thick"): LetterkennyCo
       intensifierRules: [...config.intensifierRules, ...layer.intensifierRules],
       phrasingRules: [...config.phrasingRules, ...layer.phrasingRules],
       contractionRules: [...config.contractionRules, ...layer.contractionRules],
+      templateRules: [...config.templateRules, ...layer.templateRules],
     }),
     { ...thickConfig },
   );
